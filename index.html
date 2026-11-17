@@ -819,6 +819,16 @@ function chunks1(text) {
       break;
     }
   }
+  /* 비교급 + today·now + than 도 한 덩어리로 (예: I feel / better today than yesterday.) */
+  for (let k = 0; k < out.length - 1; k++) {
+    const c = out[k], nx = out[k + 1], last = (c[c.length - 1] || '').toLowerCase().replace(/[^a-z]/g, '');
+    const ti = nx.findIndex(x => /^than$/i.test(x));
+    if (ti < 1 || ti > 3 || !nx.slice(0, ti).every(x => /^(today|now|here|there|these|those|days|this|year|week|month|morning|tonight|lately|recently|again|still|even|much|far|a|lot|bit|little)$/i.test(x))) continue;
+    if (c.length < 3 || !(/^(better|worse|more|less|older|later|earlier|further|farther)$/.test(last) || /[a-z]{2,}(er|ier)$/.test(last)) || /^(never|ever|over|under|after|her|other|either|neither|whether|together|however)$/.test(last)) continue;
+    const n = /^(even|much|far|still|way)$/i.test(c[c.length - 2]) ? 2 : 1;
+    if (c.length - n < 2) continue;
+    out.splice(k, 2, c.slice(0, -n), c.slice(-n).concat(nx));
+  }
   /* 1단어짜리 덩어리는 이웃과 합쳐요 */
   const merged = [];
   const KEEP1 = /^(yesterday|tomorrow|today|tonight|now|again|too|later|soon|yet|together|instead|either|already)[.!?]*$/i;
