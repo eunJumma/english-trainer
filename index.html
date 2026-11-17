@@ -742,6 +742,8 @@ function chunks1(text) {
     if (/^(always|often|usually|never|sometimes|really|also|just|still|rarely|seldom|even)$/i.test(out[0][1])) { if (out[0].length - 3 >= 2) out.splice(0, 1, out[0].slice(0, 3), out[0].slice(3)); cut = 0; }
     if (AUX.test(out[0][1]) && out[0][2] && !DET.test(out[0][2]) && !/^(as|all|both|each|every|many|much|few|lots|plenty|one|two|three|four|five|six|seven|eight|nine|ten|\d+|nothing|something|anything|everything|fun|time|money|breakfast|lunch|dinner)$/i.test(out[0][2].replace(/[^a-z0-9']/gi, ''))) cut = 3;
     if (AUX.test(out[0][1]) && out[0][2] && /^(not|been|being)$/i.test(out[0][2]) && out[0][3]) cut = 4;
+    /* He has never seen 처럼 조동사 뒤 never·already·just 같은 말은 동사까지 한 덩어리로 묶어요 (have never been 이면 been 까지) */
+    if (AUX.test(out[0][1]) && out[0][2] && /^(never|ever|already|just|always|often|still|also|really|even|finally|recently|usually|sometimes|hardly|rarely)$/i.test(out[0][2]) && out[0][3]) cut = /^(been|not)$/i.test(out[0][3]) && out[0][4] && !/[.!?,]$/.test(out[0][3]) ? 5 : 4;
     /* We have / only one cake. 처럼 only·just·almost 가 뒤의 수량·명사를 꾸미면 그 말과 한 덩어리로 묶어요 */
     if (/^(have|has|had|am|is|are|was|were)$/i.test(out[0][1]) && out[0][2] && /^(only|just|almost|nearly|exactly|about|over|under|at|less|more)$/i.test(out[0][2]) && out[0][3] && (DET.test(out[0][3].replace(/[^a-z']/gi, '')) || /^(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|hundred|a|an|half|\d+\S*|least|than)$/i.test(out[0][3].replace(/[^a-z0-9']/gi, '')))) cut = 2;
     /* We moved here / a long time ago. 처럼 동사 뒤 here·home·back 같은 말은 동사에 붙여요 */
