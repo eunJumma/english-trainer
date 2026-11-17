@@ -796,6 +796,12 @@ function chunks1(text) {
     for (let j = 2; j <= c.length - 2; j++) { const pv = c[j - 1].toLowerCase().replace(/[^a-z']/g, ''); const pv2 = (c[j - 2] || '').toLowerCase().replace(/[^a-z']/g, ''); const particle = /^(in|on|over|around|about|through)$/.test(pv) && !/^(a|an|the|my|your|his|her|our|their|its|this|that|these|those|some|two|both)$/i.test((c[j - 3] || '').replace(/[^a-z]/gi, '')) && /^(let|lets|come|comes|came|get|gets|got|fill|fills|filled|turn|turns|turned|give|gives|gave|put|puts|check|checks|checked|log|sign|signed|try|tries|tried|hand|hands|handed|hold|holds|held|carry|carries|carried|keep|keeps|kept|move|moves|moved|drop|drops|dropped|plug|plugged|take|takes|took|look|looks|looked|think|thinks|thought|show|showed|walk|walked|run|ran)$/.test(pv2); if (/^(all|both|half)$/.test(pv) && j - 1 >= 2 && /^(a|an|the|my|your|his|her|our|their|its|this|that|these|those)$/i.test(c[j].replace(/[^a-z']/gi, '')) && pv2 !== 'of' && !BREAK.has(pv2)) { cut = j - 1; break; } if (/^(a|an|the|my|your|his|her|our|their|its|this|that|these|those|some|any|no)$/i.test(c[j].replace(/[^a-z']/gi, '')) && pv !== 'of' && pv !== 'as' && (!BREAK.has(pv) || particle) && !DET.test(pv)) { cut = j; break; } }
     if (cut > 0) { out.splice(k, 1, c.slice(0, cut), c.slice(cut)); k++; }
   }
+  /* used as a library 처럼 '동사 + as + a/the 명사'(~로서)는 as 앞에서 끊어요 (This room has been used / as a library / since 2010.) */
+  for (let k = 0; k < out.length; k++) {
+    const c = out[k]; if (c.length < 5) continue;
+    const j = c.findIndex((x, i) => i >= 3 && /^as$/i.test(x) && c[i + 1] && /^(a|an|the|my|your|his|her|our|their)$/i.test(c[i + 1]));
+    if (j > 0 && !c.slice(0, j).some(x => /^as$/i.test(x)) && c.length - j >= 3) { out.splice(k, 1, c.slice(0, j), c.slice(j)); k++; }
+  }
   /* 덩어리 끝의 this morning·this week 같은 시간 표현은 따로 떼어요 (예: I couldn't locate / my keys / this morning.) */
   for (let k = 0; k < out.length; k++) {
     const c = out[k]; if (c.length < 4) continue;
