@@ -798,6 +798,11 @@ function chunks1(text) {
     else if (c.length >= 3 && /^(what|which|whose|how)$/i.test(c[c.length - 2]) && /^(many|much|long|far|often|color|colour|time|kind|way|book|one|food|clothes|dress|size)$/i.test(c[c.length - 1]) && /^to$/i.test(nx[0]))
       out.splice(k, 2, c.slice(0, -2), c.slice(-2).concat(nx));
   }
+  /* out of 는 out 뒤에서 끊어요 (예: Get out / of the water / now!) */
+  for (let k = 0; k < out.length; k++) {
+    const c = out[k], j = c.findIndex((x, i) => i >= 1 && /^out$/i.test(x) && /^of$/i.test(c[i + 1] || '') && !/^(is|are|was|were|be|been|am|soon|still|totally|completely)$/i.test(c[i - 1]) && !/^(nowhere|stock|fashion|sight|order|date|breath|control|reach|town|time|danger|place|work|tune|shape|season)\b/i.test(c[i + 2] || ''));
+    if (j >= 1 && c.length - (j + 1) >= 2) { out.splice(k, 1, c.slice(0, j + 1), c.slice(j + 1)); k++; }
+  }
   /* 1단어짜리 덩어리는 이웃과 합쳐요 */
   const merged = [];
   const KEEP1 = /^(yesterday|tomorrow|today|tonight|now|again|too|later|soon|yet|together|instead|either|already)[.!?]*$/i;
