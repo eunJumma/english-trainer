@@ -22,7 +22,7 @@
 --acc:light-dark(#ff7f9c,#ff9fb5);--accd:light-dark(#e2607f,#d8708a);--accbg:light-dark(#ffe9ef,#4a2c38);
 --mint:light-dark(#d9f5ec,#21403a);--butter:light-dark(#fff3c4,#463d22);--lav:light-dark(#ece6ff,#352e4e);--sky:light-dark(#e1f1ff,#22374a);
 --ok:light-dark(#2e9e7a,#7fe0bf);--okbg:light-dark(#e2f7ef,#1f3d34);
---no:light-dark(#e5566b,#ff8a9a);--track:light-dark(#f7e6ea,#3a3040);
+--no:light-dark(#e5566b,#ff8a9a);--nobg:light-dark(#fde8ec,#4a2530);--track:light-dark(#f7e6ea,#3a3040);
 --tape:light-dark(rgba(255,196,214,.75),rgba(255,159,181,.35));--tape2:light-dark(rgba(170,230,210,.8),rgba(127,224,191,.3))}
 :root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box;min-width:0}
@@ -74,7 +74,13 @@ background:repeating-linear-gradient(45deg,var(--acc) 0 10px,#ffa3b8 10px 20px)}
 .opt.no{border-color:var(--no);color:var(--no);text-decoration:line-through;opacity:.8}
 .inp{width:100%;min-height:62px;border:2px dashed var(--acc);border-radius:20px;padding:0 18px;font-size:22px;background:var(--card);color:var(--ink)}
 .inp.ok{border:2px solid var(--ok);background:var(--okbg);color:var(--ok)}
-.inp.no{border:2px solid var(--no);color:var(--no)}
+.inp.no{border:3px solid var(--no);background:var(--nobg);color:var(--no);text-decoration:line-through;animation:shake .45s}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.mark{margin:10px 2px 0;padding:10px 14px;border-radius:16px;font-weight:bold;font-size:18px;line-height:1.5}
+.mark.ok{background:var(--okbg);color:var(--ok);border:2px solid var(--ok)}
+.mark.no{background:var(--nobg);color:var(--no);border:2px solid var(--no)}
+.mark.no s{color:var(--no)}.mark.no b{color:var(--ink);background:var(--card);padding:0 8px;border-radius:8px}
+.fb.no h3{background:var(--nobg);color:var(--no)}
 .fb{border-style:dashed}
 .fb h3{margin:0 0 6px;font-size:15px;display:inline-block;padding:2px 10px;border-radius:12px;background:var(--accbg);color:var(--accd)}
 .fb.ok h3{background:var(--okbg);color:var(--ok)}.fb.ok .ans{color:var(--ok)}
@@ -192,6 +198,7 @@ button.ck.ck-on{border-color:var(--acc);background:var(--accbg);color:var(--accd
     <form id="fGram" autocomplete="off">
       <input class="inp" id="qInp" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="정답 입력">
     </form>
+    <div id="qMark" class="mark hide" role="status"></div>
   </div>
   <div id="qFb" class="card fb hide"></div>
   <p class="note" id="qNote"></p>
@@ -1133,7 +1140,7 @@ function toGrammar() {
   $('qBar').style.width = ((S.i + 1) / S.q.length * 100) + '%';
   $('vocab').classList.add('hide'); $('gram').classList.remove('hide');
   $('qBase').textContent = word.w; $('qNote').textContent = '';
-  const inp = $('qInp'); inp.value = ''; inp.className = 'inp'; inp.readOnly = false; inp.placeholder = word.w;
+  const inp = $('qInp'); inp.value = ''; inp.className = 'inp'; inp.readOnly = false; inp.placeholder = word.w; $('qMark').className = 'mark hide';
   dock('확인', submitGram); item.g = null; runTimer();
   setTimeout(() => { try { inp.focus(); } catch (e) {} }, 50);
 }
@@ -1145,10 +1152,14 @@ function submitGram() {
   item.g = { ok, fast: ok && t <= LIMIT, input: inp.value.trim() };
   mem.hist = (mem.hist || []).concat([[word.w, item.si, ok ? 1 : 0, inp.value.trim().slice(0, 40)]]).slice(-300);
   inp.readOnly = true; inp.classList.add(ok ? 'ok' : 'no'); inp.blur();
+  /* 맞았는지 틀렸는지 입력칸 바로 아래에 크게 보여 줘요 */
+  const mk = $('qMark'); mk.className = 'mark ' + (ok ? 'ok' : 'no');
+  mk.innerHTML = ok ? '⭕ 맞았어요!' : '❌ 틀렸어요 &nbsp;<s>' + esc(inp.value.trim()) + '</s> → 정답 <b>' + esc(s.ans) + '</b>';
+  if (!ok) { try { navigator.vibrate && navigator.vibrate(150); } catch (e) {} }
   $('qSent').innerHTML = sentHTML(s, s.ans);
   const fb = $('qFb'); fb.classList.remove('hide');
   fb.className = 'card fb ' + (ok ? 'ok' : 'no');
-  fb.innerHTML = (ok ? '<h3>정답</h3>' : '<h3>정답과 해설</h3>') + '<div class="ans">' + esc(s.ans) + '</div>' + explain(word, s, ok ? '' : inp.value.trim());
+  fb.innerHTML = (ok ? '<h3>⭕ 정답</h3>' : '<h3>❌ 틀렸어요 · 정답과 해설</h3>') + '<div class="ans">' + esc(s.ans) + '</div>' + explain(word, s, ok ? '' : inp.value.trim());
   $('qSay').innerHTML = chunkPanel(full(s)); $('chunkBox').dataset.full = full(s); $('chunkBox').style.marginTop = '0';
   $('qSay').classList.remove('hide');
   if (mem.autoSay !== false) autoSpeak(full(s));
