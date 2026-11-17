@@ -730,7 +730,7 @@ function chunks1(text) {
     /* We have / only one cake. 처럼 only·just·almost 가 뒤의 수량·명사를 꾸미면 그 말과 한 덩어리로 묶어요 */
     if (/^(have|has|had|am|is|are|was|were)$/i.test(out[0][1]) && out[0][2] && /^(only|just|almost|nearly|exactly|about|over|under|at|less|more)$/i.test(out[0][2]) && out[0][3] && (DET.test(out[0][3].replace(/[^a-z']/gi, '')) || /^(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|hundred|a|an|half|\d+\S*|least|than)$/i.test(out[0][3].replace(/[^a-z0-9']/gi, '')))) cut = 2;
     /* We moved here / a long time ago. 처럼 동사 뒤 here·home·back 같은 말은 동사에 붙여요 */
-    while (cut && out[0][cut] && out[0].length - cut > 2 && (/^(here|there|home|back|away|out|up|down|abroad|early|late|hard|fast|well|together|alone|again|me|him|us|them|you|it)$/i.test(out[0][cut]) || (/^her$/i.test(out[0][cut]) && /^(a|an|the|some|this|that|one|two|three|four|five|six|seven|eight|nine|ten|many|several|\d+|last|next|yesterday|today|every|at|in|on|for|to|with|about|again|and|but|so|because|when|very)\b/i.test(out[0][cut + 1] || '')))) cut++;
+    while (cut && out[0][cut] && out[0].length - cut > 2 && !(/^(up|down|along|across|around|through|over|into)$/i.test(out[0][cut]) && DET.test((out[0][cut + 1] || '').replace(/[^a-z']/gi, '')) && /^(walk|walks|walked|walking|run|runs|ran|running|climb|climbs|climbed|climbing|go|goes|went|going|come|comes|came|coming|ride|rides|rode|riding|drive|drives|drove|driving|swim|swims|swam|swimming|roll|rolls|rolled|rolling|hike|hikes|hiked|hiking|jump|jumps|jumped|fall|falls|fell|slide|slid|move|moves|moved|hurry|hurried|rush|rushed|march|marched|skate|skated|cycle|cycled|travel|traveled|travelled|flew|fly|flies|sail|sailed|crawl|crawled)$/i.test(out[0][cut - 1] || '')) && (/^(here|there|home|back|away|out|up|down|abroad|early|late|hard|fast|well|together|alone|again|me|him|us|them|you|it)$/i.test(out[0][cut]) || (/^her$/i.test(out[0][cut]) && /^(a|an|the|some|this|that|one|two|three|four|five|six|seven|eight|nine|ten|many|several|\d+|last|next|yesterday|today|every|at|in|on|for|to|with|about|again|and|but|so|because|when|very)\b/i.test(out[0][cut + 1] || '')))) cut++;
     if (cut && out[0][cut] && /^(and|or)$/i.test(out[0][cut])) cut = 0;
     if (cut && out[0][cut] && ADJPREPW.test(out[0][cut].toLowerCase()) && ADJP.test((out[0][cut - 1] || '').toLowerCase())) cut = 0;
     if (cut && out[0].length - cut >= 2) out.splice(0, 1, out[0].slice(0, cut), out[0].slice(cut));
@@ -779,6 +779,17 @@ function chunks1(text) {
   }
   /* 덩어리가 the·a·my 같은 말로 끝나면 뒤 덩어리와 붙여요 (예: than the / last one → than the last one) */
   for (let k = out.length - 2; k >= 0; k--) if (/^(a|an|the|my|your|our|their)$/i.test(out[k][out[k].length - 1]) && out[k].length >= 2) out.splice(k, 2, out[k].concat(out[k + 1]));
+  /* 움직임 동사 뒤 up·down·around 는 뒤의 장소와 한 덩어리로 (예: We walked / up the hill.) */
+  { const MV = /^(walk|walks|walked|walking|run|runs|ran|running|climb|climbs|climbed|climbing|go|goes|went|going|come|comes|came|coming|ride|rides|rode|riding|drive|drives|drove|driving|swim|swims|swam|swimming|roll|rolls|rolled|rolling|hike|hikes|hiked|hiking|jump|jumps|jumped|fall|falls|fell|falling|slide|slides|slid|move|moves|moved|moving|hurry|hurried|rush|rushed|march|marched|skate|skated|cycle|cycled|travel|travels|traveled|travelled|fly|flies|flew|sail|sailed|crawl|crawls|crawled|float|floats|floated|flow|flows|flowed|drift|drifted|wander|wandered|stroll|strolled|race|raced|chase|chased|follow|followed|dance|danced|spin|spun|orbit|orbits)$/i;
+    const TIMEN = /^(year|years|week|weeks|month|months|morning|night|hour|hours|minute|minutes|day|days|time|summer|winter|spring|fall|semester|season)\b/i;
+    for (let k = 0; k < out.length - 1; k++) {
+      const c = out[k], nx = out[k + 1], last = c[c.length - 1];
+      if (c.length < 2 || !/^(up|down|around|along|across|through)$/i.test(last)) continue;
+      if (!DET.test(nx[0].replace(/[^a-z']/gi, '')) || TIMEN.test((nx[1] || '').replace(/[^a-z]/gi, ''))) continue;
+      if (!c.slice(0, -1).some(x => MV.test(x.replace(/[^a-z]/gi, '')))) continue;
+      out.splice(k, 2, c.slice(0, -1), [last].concat(nx));
+    }
+  }
   /* 1단어짜리 덩어리는 이웃과 합쳐요 */
   const merged = [];
   const KEEP1 = /^(yesterday|tomorrow|today|tonight|now|again|too|later|soon|yet|together|instead|either|already)[.!?]*$/i;
