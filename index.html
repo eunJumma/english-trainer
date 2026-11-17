@@ -735,6 +735,14 @@ function chunks1(text) {
     if (cut && out[0][cut] && ADJPREPW.test(out[0][cut].toLowerCase()) && ADJP.test((out[0][cut - 1] || '').toLowerCase())) cut = 0;
     if (cut && out[0].length - cut >= 2) out.splice(0, 1, out[0].slice(0, cut), out[0].slice(cut));
   }
+  /* Do you want / milk or juice? 처럼 '조동사 + 주어 + 동사'로 시작하는 질문은 동사 뒤에서 끊어요 */
+  if (out.length && out[0].length >= 5 && /^(do|does|did|can|could|will|would|should|shall|may|might|must|don't|doesn't|didn't|can't|won't)$/i.test(out[0][0]) &&
+      PRON.test(out[0][1].replace(/[^a-z']/gi, '')) && !/^(not|really|always|ever|never|still|also|just|often|usually|be)$/i.test(out[0][2]) && !/ly$/i.test(out[0][2]) && /^[a-z]+$/i.test(out[0][2])) {
+    /* 동사 바로 뒤 me·you·it 같은 말과 up·on·of 같은 말은 동사에 붙여요 (Can you show me / the way?) */
+    let cut = 3;
+    while (out[0][cut] && /^(me|you|him|her|it|us|them|up|on|in|of|off|out|down|over|back|away)$/i.test(out[0][cut]) && !(/^her$/i.test(out[0][cut]) && /^[a-z]+$/i.test(out[0][cut + 1] || '') && !/^(a|an|the|to|with|at|in|on)$/i.test(out[0][cut + 1]))) cut++;
+    if (out[0].length - cut >= 2) out.splice(0, 1, out[0].slice(0, cut), out[0].slice(cut));
+  }
   /* The beach is / two hours away. 처럼 '명사 주어 + be동사' 뒤에서 끊어요 */
   if (out.length && out[0].length >= 5 && /^(the|a|an|this|that|these|those|our|their|your|his|her|its|my|mom|dad)$/i.test(out[0][0]) ) {
     for (let j = /^(mom|dad)$/i.test(out[0][0]) ? 1 : 2; j <= 3; j++) {
