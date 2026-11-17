@@ -739,7 +739,7 @@ function chunks1(text) {
   if (out.length && out[0].length >= 5 && PRON.test(out[0][0].replace(/[^a-z']/gi, ''))) {
     let cut = 2;
     /* He always acts 처럼 주어 뒤에 always·often 같은 말이 오면 동사까지 붙여요 */
-    if (/^(always|often|usually|never|sometimes|really|also|just|still|rarely|seldom|even)$/i.test(out[0][1])) { if (out[0].length - 3 >= 2) out.splice(0, 1, out[0].slice(0, 3), out[0].slice(3)); cut = 0; }
+    if (/^(always|often|usually|never|sometimes|really|also|just|still|rarely|seldom|even)$/i.test(out[0][1])) { if (out[0].length - 3 >= 2 && !(out[0].length - 3 === 2 && /^(again|too|later|soon|yet|together|instead|either|already|today|tonight|now)[.!?]*$/i.test(out[0][4]))) out.splice(0, 1, out[0].slice(0, 3), out[0].slice(3)); cut = 0; }
     if (AUX.test(out[0][1]) && out[0][2] && !DET.test(out[0][2]) && !/^(as|all|both|each|every|many|much|few|lots|plenty|one|two|three|four|five|six|seven|eight|nine|ten|\d+|nothing|something|anything|everything|fun|time|money|breakfast|lunch|dinner)$/i.test(out[0][2].replace(/[^a-z0-9']/gi, ''))) cut = 3;
     if (AUX.test(out[0][1]) && out[0][2] && /^(not|been|being)$/i.test(out[0][2]) && out[0][3]) cut = 4;
     /* He has never seen 처럼 조동사 뒤 never·already·just 같은 말은 동사까지 한 덩어리로 묶어요 (have never been 이면 been 까지) */
@@ -850,6 +850,12 @@ function chunks1(text) {
     const n = /^(even|much|far|still|way)$/i.test(c[c.length - 2]) ? 2 : 1;
     if (c.length - n < 2) continue;
     out.splice(k, 2, c.slice(0, -n), c.slice(-n).concat(nx));
+  }
+  /* say / that again 처럼 '대명사 + again·already' 덩어리는 대명사를 앞 동사에 붙여요 (Please say that / again.) */
+  for (let k = 1; k < out.length; k++) {
+    const c = out[k], pv = out[k - 1];
+    if (c.length === 2 && /^(that|it|me|him|her|us|them|you|everything|something|this)$/i.test(c[0]) && /^(again|too|later|soon|yet|together|already|now)[.!?]*$/i.test(c[1]) && !/[,;:.!?]$/.test(pv[pv.length - 1]) && !BREAK.has(pv[pv.length - 1].toLowerCase()) && !/^(is|are|was|were|be|am)$/i.test(pv[pv.length - 1]))
+      out.splice(k - 1, 2, pv.concat(c[0]), [c[1]]);
   }
   /* 1단어짜리 덩어리는 이웃과 합쳐요 */
   const merged = [];
