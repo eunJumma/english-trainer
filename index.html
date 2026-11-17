@@ -790,6 +790,14 @@ function chunks1(text) {
       out.splice(k, 2, c.slice(0, -1), [last].concat(nx));
     }
   }
+  /* what·how·where + to 는 한 덩어리로 (예: I don't know / what to do.) */
+  for (let k = 0; k < out.length - 1; k++) {
+    const c = out[k], nx = out[k + 1];
+    if (c.length >= 2 && /^(what|how|where|when|which|who|whom|whether)$/i.test(c[c.length - 1]) && /^to$/i.test(nx[0]))
+      out.splice(k, 2, c.slice(0, -1), [c[c.length - 1]].concat(nx));
+    else if (c.length >= 3 && /^(what|which|whose|how)$/i.test(c[c.length - 2]) && /^(many|much|long|far|often|color|colour|time|kind|way|book|one|food|clothes|dress|size)$/i.test(c[c.length - 1]) && /^to$/i.test(nx[0]))
+      out.splice(k, 2, c.slice(0, -2), c.slice(-2).concat(nx));
+  }
   /* 1단어짜리 덩어리는 이웃과 합쳐요 */
   const merged = [];
   const KEEP1 = /^(yesterday|tomorrow|today|tonight|now|again|too|later|soon|yet|together|instead|either|already)[.!?]*$/i;
