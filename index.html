@@ -675,6 +675,7 @@ const BREAK = new Set(('in on at to for with from by about into onto under over 
   'that which who whom whose where yesterday tomorrow every last next today tonight now').split(' '));
 const ADJP = /^(good|bad|better|worse|afraid|interested|famous|proud|full|tired|fond|sure|aware|ready|late|different|similar|angry|worried|excited|busy|satisfied|scared|surprised|nervous|poor|great|terrible|responsible|careful|crazy|jealous|ashamed|pleased|familiar|popular|known|filled|covered|made|kind|nice|mad|sorry|bored|disappointed|upset|curious|serious|absent|close|far|free|full|rich|similar|thankful|grateful|good)$/;
 const ADJPREPW = /^(at|of|in|for|with|about|to|from)$/;
+const DET0 = /^(a|an|the|my|your|his|her|our|their|its|this|that|these|those|some|any|no)$/i;
 /* 한 줄에 문장이 둘 이상이면(예: Is it raining? No, it isn't.) 문장마다 따로 끊어요. 4단어 이하 짧은 문장은 한 덩어리로 둬요 */
 function chunks(text) {
   const parts = text.replace(/\s+/g, ' ').trim().split(/(?<=[.?!]["']?)\s+(?=["']?[A-Z])/).filter(Boolean);
@@ -712,6 +713,13 @@ function chunks1(text) {
     if (p > 0 && out[1].length - p >= 2) out.splice(0, 2, out[0].concat(out[1].slice(0, p)), out[1].slice(p));
     else if (p > 0 && out[2]) out.splice(0, 3, out[0].concat(out[1].slice(0, p)), out[1].slice(p).concat(out[2]));
     else if (p < 0 && out[2] && VB.test(out[2][0])) out.splice(0, 2, out[0].concat(out[1]));
+  }
+  /* Many people in the world / speak English. 처럼 '많은 사람들 + 전치사구'가 주어이면 동사 앞에서 끊어요 */
+  if (out.length >= 2 && out[0].length <= 3 && /^(many|most|some|all|few|several|both|lots|people|kids|children|students|everyone|everybody|nobody|someone|somebody|anyone|each|the|a|an|this|that|these|those|my|your|his|her|our|their|its)$/i.test(out[0][0]) &&
+      !out[0].some(x => /^(is|are|was|were|am|can|will|has|have|had|must|should|do|does|did|would|could)$/i.test(x)) && /^(in|on|at|of|from|around|across|with|near|under|over|all)$/i.test(out[1][0])) {
+    const SV = /^(is|are|was|were|can|can't|could|will|won't|would|has|have|had|must|should|do|does|did|don't|doesn't|didn't|speak|speaks|spoke|live|lives|lived|like|likes|liked|love|loves|loved|want|wants|wanted|need|needs|needed|know|knows|knew|think|thinks|thought|use|uses|used|eat|eats|ate|enjoy|enjoys|enjoyed|watch|watches|watched|visit|visits|visited|believe|believes|believed|celebrate|celebrates|celebrated|grow|grows|grew|wear|wears|wore|learn|learns|learned|study|studies|studied|share|shares|shared|agree|agrees|agreed|come|comes|came|go|goes|went|get|gets|got|make|makes|made|play|plays|played|say|says|said|look|looks|looked|seem|seems|seemed|become|becomes|became|face|faces|faced|suffer|suffers|suffered|depend|depends|depended)$/i;
+    const p = out[1].findIndex((x, j) => j >= 2 && SV.test(x) && !DET0.test(out[1][j - 1]) && !/^(to|of|in|on|at|for|with|and|or)$/i.test(out[1][j - 1]));
+    if (p > 0 && out[1].length - p >= 2 && !out[1].slice(1, p).some(x => /[,;:]$/.test(x) || SV.test(x))) out.splice(0, 2, out[0].concat(out[1].slice(0, p)), out[1].slice(p));
   }
   /* as 형용사 as 는 한 덩어리로, 그 앞에서 끊어요 (예: He is / as tall as his dad.) */
   for (let k = 0; k < out.length; k++) {
