@@ -803,6 +803,22 @@ function chunks1(text) {
     const c = out[k], j = c.findIndex((x, i) => i >= 1 && /^out$/i.test(x) && /^of$/i.test(c[i + 1] || '') && !/^(is|are|was|were|be|been|am|soon|still|totally|completely)$/i.test(c[i - 1]) && !/^(nowhere|stock|fashion|sight|order|date|breath|control|reach|town|time|danger|place|work|tune|shape|season)\b/i.test(c[i + 2] || ''));
     if (j >= 1 && c.length - (j + 1) >= 2) { out.splice(k, 1, c.slice(0, j + 1), c.slice(j + 1)); k++; }
   }
+  /* 횟수 표현은 한 덩어리로 (예: I brush my teeth / two times a day.) */
+  { const ws = out.flat(), B = new Set(); let n = 0; out.forEach(c => { B.add(n); n += c.length; });
+    const NUM = /^(once|twice|one|two|three|four|five|six|seven|eight|nine|ten|several|many|a|\d+)$/i;
+    for (let i = 0; i < ws.length; i++) {
+      const w0 = ws[i].replace(/[^a-z0-9]/gi, ''); let e = -1;
+      if (/^(once|twice)$/i.test(w0) && /^(a|an|per|every)$/i.test(ws[i + 1] || '')) e = i + 3;
+      else if (NUM.test(w0) && /^(times?)$/i.test((ws[i + 1] || '').replace(/[^a-z]/gi, '')) && /^(a|an|per|every)$/i.test(ws[i + 2] || '')) e = i + 4;
+      if (e < 0 || e > ws.length || !/^(day|days|week|weeks|month|months|year|years|hour|hours|minute|minutes|night|morning|semester|season)\b/i.test(ws[e - 1].replace(/[^a-z]/gi, ''))) continue;
+      for (let j = i + 1; j < e; j++) B.delete(j);
+      B.add(i); if (e < ws.length) B.add(e);
+      if (i > 0 && i <= 4) for (let j = 1; j < i; j++) B.delete(j);
+      const idx = [...B].sort((x, y) => x - y); out.length = 0;
+      idx.forEach((st, q) => out.push(ws.slice(st, idx[q + 1] || ws.length)));
+      break;
+    }
+  }
   /* 1단어짜리 덩어리는 이웃과 합쳐요 */
   const merged = [];
   const KEEP1 = /^(yesterday|tomorrow|today|tonight|now|again|too|later|soon|yet|together|instead|either|already)[.!?]*$/i;
