@@ -64,7 +64,7 @@ background:repeating-linear-gradient(45deg,var(--acc) 0 10px,#ffa3b8 10px 20px)}
 #quiz > .card:not(.fb){background-image:repeating-linear-gradient(transparent 0 37px,var(--line) 37px 39px);background-color:var(--card)}
 .sent{font-size:24px;line-height:1.62;font-weight:bold}
 .blank{display:inline-block;min-width:4.5em;text-align:center;color:var(--accd);padding:0 8px;line-height:1.35;border-radius:10px;background:var(--accbg);border-bottom:3px dotted var(--acc)}
-.ko{color:var(--sub);margin-top:10px;font-size:16px}
+.ko{color:var(--sub);margin-top:10px;font-size:19px}
 .ask{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-weight:bold;margin:18px 2px 10px}
 .ask .w{color:var(--accd);font-size:22px;background:var(--butter);padding:2px 12px;border-radius:14px}
 .opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
@@ -903,7 +903,7 @@ function renderHome() {
   const c = mem.cur;
   if (c && c.q && c.q.length && (c.i || 0) < c.q.length) {
     $('resumeRow').classList.remove('hide');
-    $('bResume').textContent = '이어서 하기 — ' + (c.review === 'g' ? (c.gname || '문법') + ' 연습 ' : c.review ? (c.gname ? c.gname + ' ' : '') + '복습 ' : '') + ((c.i || 0) + 1) + ' / ' + c.q.length + '번 문제부터';
+    $('bResume').textContent = '이어서 하기 — ' + (c.review === 'g' ? (c.gname || '문법') + ' 연습 ' : c.review ? (c.gname ? c.gname + ' ' : '복습 ') : '') + ((c.i || 0) + 1) + ' / ' + c.q.length + '번 문제부터';
   } else $('resumeRow').classList.add('hide');
   show('home'); dock(null);
 }
@@ -965,7 +965,7 @@ function startReview(lv, gi) {
   if (!all.length) return;
   if (gi != null) {
     const picked = all.slice(gi * 10, gi * 10 + 10).sort(() => Math.random() - .5);
-    S = { review: lv, gname: (lv === 'e' ? '초등 ' : '중학 ') + (gi + 1) + '묶음', q: picked.map(w => ({ w: w.w })), i: 0, right: 0, erased: [], again: new Set(), requeued: new Set() };
+    S = { review: lv, gname: (lv === 'e' ? '초등 ' : '중학 ') + (gi + 1) + '장', q: picked.map(w => ({ w: w.w })), i: 0, right: 0, erased: [], again: new Set(), requeued: new Set() };
     show('quiz'); nextQ(); return;
   }
   const studied = all.filter(w => st(w.w).seen || st(w.w).done).sort(() => Math.random() - .5);
@@ -1022,7 +1022,7 @@ function sentHTML(s, fill) {
 function header(title) {
   const n = S.q.length;
   $('qTitle').textContent = title;
-  $('qStep').textContent = S.review ? (S.review === 'g' ? S.gname + ' 연습' : S.review === 'e' || S.review === 'm' ? (S.gname ? S.gname + ' 복습' : S.review === 'e' ? '초등 단어 복습' : '중학 단어 복습') : '복습') : '훈련 ' + mem.session + '회차';
+  $('qStep').textContent = S.review ? (S.review === 'g' ? S.gname + ' 연습' : S.review === 'e' || S.review === 'm' ? (S.gname ? S.gname : S.review === 'e' ? '초등 단어 복습' : '중학 단어 복습') : '복습') : '훈련 ' + mem.session + '회차';
   $('qCount').textContent = String(S.i + 1).padStart(2, '0') + ' / ' + String(n).padStart(2, '0');
   $('bPrev').style.visibility = ((mem.hist || []).length || Object.keys(mem.words || {}).some(k => mem.words[k].seen && mem.words[k].last >= 0)) ? 'visible' : 'hidden';
 }
