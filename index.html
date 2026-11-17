@@ -120,7 +120,7 @@ button.ck.ck-on{border-color:var(--acc);background:var(--accbg);color:var(--accd
 <!-- 홈 -->
 <section id="home">
   <h1>영단어 문장 훈련</h1>
-  <p class="sub">2022 개정 영어과 교육과정 기본 어휘 중 초등 권장 단어(*표 800개)와 중·고 공통 권장 단어(**표 1,200개)를 여러 문법 형태로 바꿔 쓰며 익혀요. 초등 단어를 다 지우면 중학 단어가 나와요. 한 문항은 어휘 훈련과 문법 훈련 두 단계예요.</p>
+  <p class="sub">2022 개정 영어과 교육과정 기본 어휘 중 초등 권장 단어(*표 800개)와 중·고 공통 권장 단어(**표 1,200개)를 여러 문법 형태로 바꿔 쓰며 익혀요. 아래에서 초등 학습과 중학 학습 중 원하는 단계를 골라 공부할 수 있어요. 한 문항은 어휘 훈련과 문법 훈련 두 단계예요.</p>
   <div class="card">
     <div class="top" style="justify-content:flex-start"><b id="hTitle">지운 단어</b></div>
     <div class="bar"><i id="hBar" style="width:0"></i></div>
@@ -131,6 +131,8 @@ button.ck.ck-on{border-color:var(--acc);background:var(--accbg);color:var(--accd
     </div>
     <p class="legend" id="hInfo"></p>
   </div>
+  <div class="ck" style="justify-content:flex-start">학습 단계</div>
+  <div class="tabs" id="lvTabs"><button data-l="e">초등 학습</button><button data-l="m">중학 학습</button></div>
   <div class="row" style="margin-top:6px">
     <button class="btn" id="bStart">훈련 시작</button>
   </div>
@@ -888,6 +890,7 @@ function renderHome() {
   const lvStat = l => { const ws = WORDS.filter(w => w.lv === l); return ws.filter(w => st(w.w).done).length + ' / ' + ws.length; };
   $('hInfo').textContent = '초등 단계 지운 단어 ' + lvStat('e') + ' · 중학 단계 지운 단어 ' + lvStat('m') + ' · 전체 단어 ' + WORDS.length + '개, 문장 ' + TOTAL_S + '개';
   $('bStart').textContent = d === WORDS.length && WORDS.length ? '모두 지웠어요! 다시 복습하기' : '훈련 시작 (' + PER_SESSION + '문항)';
+  [...$('lvTabs').children].forEach(x => x.classList.toggle('on', x.dataset.l === curLv()));
   renderGrammarChips();
   const c = mem.cur;
   if (c && c.q && c.q.length && (c.i || 0) < c.q.length) {
@@ -918,8 +921,7 @@ const GRAMMAR = [
   ['복수형', s => s.code === 'pl'], ['부사', s => s.code === 'adv']
 ];
 function grammarPool(i) {
-  const inE = WORDS.some(w => w.lv === 'e' && !st(w.w).done);
-  const ws = WORDS.filter(w => !inE || w.lv === 'e');
+  const lv = curLv(), ws = WORDS.filter(w => w.lv === lv);
   const out = [];
   ws.forEach(w => w.s.forEach((x, si) => { if (GRAMMAR[i][1](x)) out.push({ w: w.w, si }); }));
   return out;
@@ -959,12 +961,17 @@ function startReview(lv) {
   S = { review: lv, q: picked.map(w => ({ w: w.w })), i: 0, right: 0, erased: [], again: new Set(), requeued: new Set() };
   show('quiz'); nextQ();
 }
+/* 지금 공부할 단계: 고른 단계(초등 e / 중학 m). 고르지 않았으면 초등 단어가 남아 있는 동안 초등이에요 */
+function curLv() {
+  if (mem.lv === 'e' || mem.lv === 'm') return mem.lv;
+  return WORDS.some(w => w.lv === 'e' && !st(w.w).done) ? 'e' : 'm';
+}
 function startSession() {
   mem.session = (mem.session || 0) + 1;
   let live = WORDS.filter(w => !st(w.w).done);
-  /* 초등 단어를 모두 지울 때까지는 초등 단어만 나와요 */
-  const liveE = live.filter(w => w.lv === 'e');
-  if (liveE.length) live = liveE;
+  /* 고른 단계의 단어만 나와요. 그 단계를 다 지웠으면 남은 단어가 나와요 */
+  const liveLv = live.filter(w => w.lv === curLv());
+  if (liveLv.length) live = liveLv;
   if (!live.length) { WORDS.forEach(w => { mem.words[w.w] = null; }); mem.words = {}; live = WORDS.slice(); }
   const review = live.filter(w => st(w.w).pass || st(w.w).wrong > 0).sort(() => Math.random() - .5).slice(0, 5);
   const fresh = live.filter(w => !review.includes(w) && !st(w.w).seen);
@@ -1168,6 +1175,7 @@ let cFn = null;
 function ask(msg, fn) { $('cMsg').textContent = msg; cFn = fn; $('confirm').classList.remove('hide'); }
 $('cNo').onclick = () => $('confirm').classList.add('hide');
 $('cYes').onclick = () => { $('confirm').classList.add('hide'); if (cFn) cFn(); };
+$('lvTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; mem.lv = b.dataset.l; save(); [...$('lvTabs').children].forEach(x => x.classList.toggle('on', x.dataset.l === curLv())); renderGrammarChips(); });
 function paintRate() { [...$('rateTabs').children].forEach(x => x.classList.toggle('on', +x.dataset.r === (mem.rate || 0.7))); }
 $('rateTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; mem.rate = +b.dataset.r; save(); paintRate(); speak('Kate cries at sad movies.'); });
 paintRate();
