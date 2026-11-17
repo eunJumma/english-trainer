@@ -642,8 +642,31 @@ function explain(word, s, wrong) {
 let voice = null;
 function pickVoice() { try { const vs = speechSynthesis.getVoices().filter(v => /^en(-|_)?US/i.test(v.lang)); voice = vs.find(v => /samantha|google|natural/i.test(v.name)) || vs[0] || null; } catch (e) {} }
 try { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; } catch (e) {}
+/* 과거형·완료형 read 는 [레드]로 읽어야 하는데 음성은 [리드]로 읽어요.
+   그래서 과거로 쓰인 read 는 소리 낼 때만 red 로 바꿔서 읽혀요 (화면 글자는 그대로) */
+let curSent = '', FULLKO = null;
+const nrm = t => t.toLowerCase().replace(/[^a-z' ]/g, ' ').replace(/\s+/g, ' ').trim();
+function readIsPast(sent) {
+  if (!FULLKO) { FULLKO = new Map(); WORDS.forEach(w => w.s.forEach(x => FULLKO.set(nrm(full(x)), x.ko || ''))); }
+  const t = nrm(sent), MID = "(?:i|you|he|she|we|they|it|already|never|ever|just|not|also|all|recently|been|n't)";
+  /* did·can·to·will 뒤의 read 는 동사원형이라 [리드] */
+  if (new RegExp("\\b(did|didn't|do|does|don't|doesn't|to|can|can't|cannot|could|couldn't|will|won't|would|should|must|may|might|let's|please)( " + MID + ")? read\\b").test(t)) return false;
+  /* have read, has been read, was read 는 과거분사라 [레드] */
+  if (new RegExp("\\b(have|has|had|i've|you've|we've|they've|i'd|been|was|were|be|being|is|are|get|got)( " + MID + ")? read\\b").test(t)) return true;
+  /* 나머지는 우리말 해석이 과거(~었어, ~했어)인지로 판단해요 */
+  const ko = FULLKO.get(t);
+  return ko != null && /[었았했줬셨됐]/.test(ko);
+}
+function readFix(text) {
+  if (!/\bread\b/i.test(text)) return text;
+  const t = nrm(text);
+  let ctx = FULLKO && FULLKO.has(t) ? text : null;
+  if (!ctx) { readIsPast(text); ctx = FULLKO.has(t) ? text : (curSent && nrm(curSent).includes(t) ? curSent : null); }
+  return ctx && readIsPast(ctx) ? text.replace(/\bread\b/g, 'red').replace(/\bRead\b/g, 'Red') : text;
+}
 function speak(text, onend) {
   try {
+    text = readFix(text);
     const u = new SpeechSynthesisUtterance(text); window.__utt = u; u.lang = 'en-US'; u.rate = mem.rate || 0.7; if (voice) u.voice = voice;
     if (onend) { let done = false; const fin = () => { if (!done) { done = true; onend(); } }; u.onend = fin; u.onerror = fin; }
     /* 아이폰에서 '멈춤(cancel)' 직후 바로 읽기를 시키면 소리가 안 나는 경우가 있어서,
@@ -889,6 +912,7 @@ function playShadow(list, sentence) {
   next();
 }
 function chunkPanel(sentence) {
+  curSent = sentence;
   const list = chunks(sentence);
   return '<div id="chunkBox" class="card" style="margin-top:14px"><h3 style="margin:0 0 8px;font-size:15px">청크로 끊어 읽기</h3>' +
     '<div class="cks">' + list.map((c, i) => (i ? '<span class="sl">/</span>' : '') + '<button type="button" class="ck" data-ck="' + i + '">' + esc(c) + '</button>').join('') + '</div>' +
@@ -948,7 +972,7 @@ function renderHist() {
   $('hOld').onclick = () => { if (hPos > 0) { hPos--; renderHist(); } };
   $('hNew').onclick = () => { if (hPos < HL.length - 1) { hPos++; renderHist(); } };
   const reveal = (msg) => {
-    const f = full(s);
+    const f = full(s); curSent = f;
     $('hSent').innerHTML = sentHTML(s, s.ans);
     $('hAns').innerHTML = (msg || '') +
       '<div class="cks" style="margin:6px 0 10px">' + chunks(f).map((c, i) => (i ? '<span class="sl">/</span>' : '') + '<button type="button" class="ck" data-say="' + esc(chunkSpeech(c)) + '">' + esc(c) + '</button>').join('') + '</div>' +
