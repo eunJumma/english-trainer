@@ -886,8 +886,7 @@ function chunkPanel(sentence) {
   const list = chunks(sentence);
   return '<div id="chunkBox" class="card" style="margin-top:14px"><h3 style="margin:0 0 8px;font-size:15px">청크로 끊어 읽기</h3>' +
     '<div class="cks">' + list.map((c, i) => (i ? '<span class="sl">/</span>' : '') + '<button type="button" class="ck" data-ck="' + i + '">' + esc(c) + '</button>').join('') + '</div>' +
-    '<p class="sub" style="margin:8px 0 10px;font-size:13px">덩어리를 누르면 그 부분만 들려요. ‘청크 따라 하기’를 누르면 한 덩어리씩 들려준 뒤 따라 말할 시간을 줘요.</p>' +
-    '<div class="row" style="gap:8px"><button class="say" type="button" style="margin-top:0;flex:0 1 auto" data-say="' + esc(sentence) + '">▶ 문장 듣기</button>' +
+    '<div class="row" style="gap:8px;margin-top:14px"><button class="say" type="button" style="margin-top:0;flex:0 1 auto" data-say="' + esc(sentence) + '">▶ 문장 듣기</button>' +
     '<button type="button" class="say" id="shPlay" style="margin-top:0;flex:0 1 auto">▶ 청크 따라 하기</button></div><p class="note" id="shMsg" style="margin:8px 2px 0"></p></div>';
 }
 document.addEventListener('click', e => {
