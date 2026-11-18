@@ -902,6 +902,27 @@ function chunks1(text) {
       break;
     }
   }
+  /* She is very nice / to me. 처럼 'be + very·so + 형용사'는 한 덩어리로 묶고, 뒤의 to·of 같은 전치사 앞에서 끊어요.
+     She has / very fine hair. 처럼 very·too·quite 가 덩어리 끝에 홀로 남으면 뒤 덩어리로 보내요 */
+  { const DEG = /^(very|so|really|too|quite|pretty|extremely|rather)$/i;
+    let ws = out.flat(), B = new Set(), n = 0; out.forEach(c => { B.add(n); n += c.length; });
+    const rebuild = () => { const idx = [...B].sort((x, y) => x - y); out.length = 0; idx.forEach((st, q) => out.push(ws.slice(st, idx[q + 1] || ws.length))); };
+    for (let i = 1; i + 4 < ws.length; i++) {
+      if (!/^(is|are|was|were|am|be|been|'m|isn't|aren't|wasn't|weren't)$/i.test(ws[i]) || !DEG.test(ws[i + 1]) || !/^[a-z]+$/i.test(ws[i + 2]) || !/^(to|of|with|for|at|about|from)$/i.test(ws[i + 3])) continue;
+      if (/[,;:.!?]$/.test(ws[i + 3])) continue;
+      for (let j = i + 1; j <= i + 3; j++) B.delete(j);
+      B.add(i + 3);
+      let end = i + 4; while (end < ws.length && !/[,;:.!?]$/.test(ws[end])) end++; end = Math.min(end + 1, ws.length);
+      if (end - (i + 3) <= 4) for (let j = i + 4; j < end; j++) B.delete(j);
+    }
+    rebuild();
+    for (let k = 0; k < out.length - 1; k++) {
+      const c = out[k], nx = out[k + 1];
+      const n0 = nx[0].toLowerCase().replace(/[^a-z']/g, '');
+      if (c.length < 3 || !DEG.test(c[c.length - 1]) || (BREAK.has(n0) && n0 !== 'near') || (/^(is|are|was|were|am|be|'m)$/i.test(c[c.length - 2]) && !/^(a|an)$/.test(n0))) continue;
+      out.splice(k, 2, c.slice(0, -1), [c[c.length - 1]].concat(nx));
+    }
+  }
   /* 문장 끝 '~ ago'(~ 전에)는 따로 한 덩어리로 떼요 (예: We became friends / two years ago.) */
   { const ws = out.flat(), e = ws.length - 1;
     if (e >= 3 && /^ago[.!?]*$/i.test(ws[e])) {
