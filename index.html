@@ -628,11 +628,11 @@ function explain(word, s, wrong) {
   const rows = [
     '<div class="exT">' + title + '</div>',
     wrong ? wrongWhy(s, wrong) : '',
-    s.mean ? '<div class="exR"><span>뜻</span><div>' + esc(s.mean) + '</div></div>' : '',
+    s.mean ? '<div class="exR"><span>뜻</span><div>' + idiomHL(esc(s.mean)) + '</div></div>' : '',
     why ? '<div class="exR"><span>왜?</span><div>' + why + '</div></div>' : '',
     how ? '<div class="exR"><span>방법</span><div>' + how + '</div></div>' : '',
     '<div class="exR"><span>변화</span><div>' + esc(word.w) + ' <i>(' + esc(word.ko) + ')</i> → <b>' + esc(a) + '</b></div></div>',
-    s.note ? '<div class="exR"><span>참고</span><div>' + esc(s.note) + '</div></div>' : '',
+    s.note ? '<div class="exR"><span>참고</span><div>' + idiomHL(esc(s.note)) + '</div></div>' : '',
     reason && s.code !== 'same' ? '<div class="exR"><span>이유</span><div>' + reason + '</div></div>' : '',
     W && W.c ? '<div class="exR"><span>비교</span><div>' + W.c.replace(/\n/g, '<br>') + '</div></div>' : ''
   ];
@@ -966,6 +966,8 @@ document.addEventListener('click', e => {
 });
 const full = s => (s.before + s.ans + s.after).replace(/\s+/g, ' ').trim();
 document.addEventListener('click', e => { const b = e.target.closest('[data-say]'); if (b) { if (b.closest('#chunkBox')) stopShadow(); speak(b.dataset.say); } });
+/* 'pay for: ~값을 내다' 처럼 숙어·표현(영어 + 콜론)은 Dad처럼 형광색으로 칠해요 */
+const idiomHL = t => t.replace(/(^|\(|, |; )([A-Za-z~][^:()<>,;\u3131-\uD7A3]*?)(?=: )/g, (m, pre, ph) => pre + '<em>' + ph + '</em>');
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function norm(t) {
   return String(t).toLowerCase().replace(/[’‘`]/g, "'").replace(/[.!?,]/g, ' ')
