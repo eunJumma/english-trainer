@@ -968,7 +968,7 @@ document.addEventListener('click', e => {
 const full = s => (s.before + s.ans + s.after).replace(/\s+/g, ' ').trim();
 document.addEventListener('click', e => { const b = e.target.closest('[data-say]'); if (b) { if (b.closest('#chunkBox')) stopShadow(); speak(b.dataset.say); } });
 /* 'pay for: ~값을 내다' 처럼 숙어·표현(영어 + 콜론)은 Dad처럼 형광색으로 칠해요 */
-const idiomHL = t => t.replace(/(^|\(|, |; )([A-Za-z~][^:()<>,;ㄱ-힣]*?): ((?:(?!, [^:()<>,;]*?: )[^()])*)/g, (m, pre, ph, ko) => { const k = ko.match(/^(.*?)(\s*)$/); return pre + '<em>' + ph + '</em>: ' + (k[1] ? '<span class="hlo">' + k[1] + '</span>' : '') + k[2]; });
+const idiomHL = t => t.replace(/(^|\(|, |; )([A-Za-z~][^:()<>,;ㄱ-힣]*?): ((?:(?!, [^:()<>,;]*?: )[^()])*)/g, (m, pre, ph, ko) => { const k = ko.match(/^(.*?)(\s*)$/); return pre + '<span class="hlo">' + ph + '</span>: ' + (k[1] ? '<span class="hlo">' + k[1] + '</span>' : '') + k[2]; });
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function norm(t) {
   return String(t).toLowerCase().replace(/[’‘`]/g, "'").replace(/[.!?,]/g, ' ')
