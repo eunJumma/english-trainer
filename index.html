@@ -886,6 +886,21 @@ function chunks1(text) {
     if (c.length === 2 && /^(that|it|me|him|her|us|them|you|everything|something|this)$/i.test(c[0]) && /^(again|too|later|soon|yet|together|already|now)[.!?]*$/i.test(c[1]) && !/[,;:.!?]$/.test(pv[pv.length - 1]) && !BREAK.has(pv[pv.length - 1].toLowerCase()) && !/^(is|are|was|were|be|am)$/i.test(pv[pv.length - 1]))
       out.splice(k - 1, 2, pv.concat(c[0]), [c[1]]);
   }
+  /* Make sure you / lock the door. 처럼 'make sure + 주어(you·I…)'는 주어 뒤에서 끊고, 뒤의 짧은 '동사 + 목적어'는 한 덩어리로 묶어요 */
+  { const ws = out.flat(), B = new Set(); let n = 0; out.forEach(c => { B.add(n); n += c.length; });
+    for (let i = 1; i < ws.length - 2; i++) {
+      if (!/^sure$/i.test(ws[i]) || !/^(make|makes|made|making)$/i.test(ws[i - 1])) continue;
+      let p = i + 1; if (/^that$/i.test(ws[p])) p++;
+      if (!/^(i|you|we|they|he|she|it)$/i.test(ws[p] || '') || p + 1 >= ws.length) continue;
+      for (let j = i; j <= p; j++) B.delete(j);
+      B.add(p + 1);
+      let end = p + 1; while (end < ws.length && !/[,;:.!?]$/.test(ws[end])) end++; end = Math.min(end + 1, ws.length);
+      if (end - (p + 1) <= 4) for (let j = p + 2; j < end; j++) B.delete(j);
+      const idx = [...B].sort((x, y) => x - y); out.length = 0;
+      idx.forEach((st, q) => out.push(ws.slice(st, idx[q + 1] || ws.length)));
+      break;
+    }
+  }
   /* 1단어짜리 덩어리는 이웃과 합쳐요 */
   const merged = [];
   const KEEP1 = /^(yesterday|tomorrow|today|tonight|now|again|too|later|soon|yet|together|instead|either|already)[.!?]*$/i;
