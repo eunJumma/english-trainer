@@ -901,6 +901,22 @@ function chunks1(text) {
       break;
     }
   }
+  /* 문장 끝 '~ ago'(~ 전에)는 따로 한 덩어리로 떼요 (예: We became friends / two years ago.) */
+  { const ws = out.flat(), e = ws.length - 1;
+    if (e >= 3 && /^ago[.!?]*$/i.test(ws[e])) {
+      let s = e - 1;
+      if (/^(years?|months?|weeks?|days?|hours?|minutes?|seconds?|time|moment|while|decades?|centuries|century|ages)$/i.test(ws[s])) {
+        while (s - 1 >= 0 && /^(a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|hundred|\d+|few|many|several|long|little|couple|of|millions|thousands|hundreds|short)$/i.test(ws[s - 1]) && !(/^one$/i.test(ws[s - 1]) && s !== e - 1)) s--;
+      } else if (!/^long$/i.test(ws[s])) s = -1;
+      if (s >= 2 && !/[,;:]$/.test(ws[s - 1])) {
+        const B = new Set(); let n = 0; out.forEach(c => { B.add(n); n += c.length; });
+        for (let j = s + 1; j <= e; j++) B.delete(j);
+        B.add(s);
+        const idx = [...B].sort((x, y) => x - y); out.length = 0;
+        idx.forEach((st, q) => out.push(ws.slice(st, idx[q + 1] || ws.length)));
+      }
+    }
+  }
   /* 1단어짜리 덩어리는 이웃과 합쳐요 */
   const merged = [];
   const KEEP1 = /^(yesterday|tomorrow|today|tonight|now|again|too|later|soon|yet|together|instead|either|already)[.!?]*$/i;
