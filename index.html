@@ -91,6 +91,7 @@ background:repeating-linear-gradient(45deg,var(--acc) 0 10px,#ffa3b8 10px 20px)}
 .exR>span{font-weight:bold;color:var(--accd);font-size:13px;background:var(--accbg);border-radius:10px;text-align:center;height:24px;line-height:24px}
 .exR em{font-style:normal;background:var(--butter);color:var(--ink);padding:0 5px;border-radius:6px;font-weight:bold}
 .exR i{font-style:normal;color:var(--sub)}
+.exR .hlo{background:light-dark(#ffd9a8,#5a3a18);color:var(--ink);padding:0 5px;border-radius:6px;font-weight:bold;-webkit-box-decoration-break:clone;box-decoration-break:clone}
 .note{color:var(--sub);font-size:15px;margin:12px 4px}
 .erased{display:inline-block;background:var(--okbg);color:var(--ok);border:2px solid var(--ok);border-radius:14px;padding:2px 12px;text-decoration:line-through;font-weight:bold;margin-right:6px}
 .dock{position:fixed;left:0;right:0;bottom:0;padding:12px 18px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 35%)}
@@ -967,7 +968,7 @@ document.addEventListener('click', e => {
 const full = s => (s.before + s.ans + s.after).replace(/\s+/g, ' ').trim();
 document.addEventListener('click', e => { const b = e.target.closest('[data-say]'); if (b) { if (b.closest('#chunkBox')) stopShadow(); speak(b.dataset.say); } });
 /* 'pay for: ~값을 내다' 처럼 숙어·표현(영어 + 콜론)은 Dad처럼 형광색으로 칠해요 */
-const idiomHL = t => t.replace(/(^|\(|, |; )([A-Za-z~][^:()<>,;\u3131-\uD7A3]*?)(?=: )/g, (m, pre, ph) => pre + '<em>' + ph + '</em>');
+const idiomHL = t => t.replace(/(^|\(|, |; )([A-Za-z~][^:()<>,;ㄱ-힣]*?): ((?:(?!, [^:()<>,;]*?: )[^()])*)/g, (m, pre, ph, ko) => { const k = ko.match(/^(.*?)(\s*)$/); return pre + '<em>' + ph + '</em>: ' + (k[1] ? '<span class="hlo">' + k[1] + '</span>' : '') + k[2]; });
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function norm(t) {
   return String(t).toLowerCase().replace(/[’‘`]/g, "'").replace(/[.!?,]/g, ' ')
