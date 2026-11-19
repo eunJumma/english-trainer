@@ -511,6 +511,7 @@ const PP_FIX = {
   'has someone left a note on my desk': '결과', 'his name has slipped my mind': '결과', 'oh no the ball has bounced over the fence': '결과',
   'i have missed you so much': '계속', 'he has won three gold medals': '경험'
 };
+const ppMap = types => '<br><span class="ppMap">' + ['계속', '경험', '완료', '결과'].map(k => types.includes(k) ? '<b>' + k + '(' + PP_USES[k].short + ')</b>' : k + '(' + PP_USES[k].short + ')').join(' · ') + '</span>';
 function ppUse(sent, ko) {
   const t = ' ' + sent.toLowerCase().replace(/[.,!?']/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
   const fix = PP_FIX[t.trim()];
@@ -527,7 +528,7 @@ function ppUse(sent, ko) {
   ko = ko || '';
   if (/적이? ?(있|없)|번째/.test(ko)) return { type: '경험', clue: '' };
   if (/벌써|이미|방금|아직/.test(ko)) return { type: '완료', clue: '' };
-  if (/왔|째|동안/.test(ko)) return { type: '계속', clue: '' };
+  if (/[어아와해돼져여] 왔|째|동안/.test(ko)) return { type: '계속', clue: '' };
   if (/^(have|has) /.test(t.trim())) return { type: /[어아] 봤/.test(ko) ? '경험' : '완료', clue: '' };
   return { type: '', clue: '' };
 }
@@ -565,7 +566,7 @@ function explain(word, s, wrong) {
       why = (u.clue ? "단서: <em>" + esc(u.clue) + "</em>" + (PP_CLUE_KO[u.clue] ? '(' + PP_CLUE_KO[u.clue] + ')' : '') + '<br>' : '')
         + (U ? U.why : "과거에 한 일이 지금까지 이어지거나 지금과 관련이 있어요.")
         + " <b>have·has + 과거분사</b>로 써요." + (/^(have|has)\b/.test(al) ? " 주어에 맞게 <em>" + esc(w1) + "</em>를 써요." : " 앞에 have·has가 이미 있으니 과거분사만 쓰면 돼요.")
-        + '<br><span class="ppMap">' + ['계속', '경험', '완료', '결과'].map(k => (k === u.type ? '<b>' : '') + k + '(' + PP_USES[k].short + ')' + (k === u.type ? '</b>' : '')).join(' · ') + '</span>';
+        + ppMap([u.type]);
       how = b + '의 과거분사: ' + pastRule(b, f); break; }
     case 'will':
       title = '미래 — 앞으로 할 일';
@@ -594,8 +595,13 @@ function explain(word, s, wrong) {
       how = ingRule(b, f); break; }
     case 'pass':
       if (/^(has|have) been /.test(al)) {
-        title = '현재완료 수동태 — (지금까지) ~되어 왔다, ~되었다';
-        why = "현재완료(<b>have·has + 과거분사</b>)와 수동태(<b>be + 과거분사</b>)가 합쳐진 모양이에요. 그래서 <b>have·has + been + 과거분사</b>가 돼요. 주어 <em>" + subj + "</em>에 맞게 <em>" + esc(w1) + "</em>를 써요." + (findClue(sent, ['by']) ? ' by 뒤에 실제로 그 일을 한 사람(것)이 나와요.' : '');
+        const u = ppUse(sent, s.ko);
+        const PT = { '계속': '(지금까지 쭉) ~되어 왔다', '경험': '~된 적이 있다', '완료': '(벌써·이미) ~되었다', '결과': '~되어서 지금 그 상태다' };
+        title = '현재완료 수동태 (' + (u.type || '완료·결과') + ') — ' + (PT[u.type] || '~되었다 (그래서 지금 그 상태)');
+        why = (u.clue ? "단서: <em>" + esc(u.clue) + "</em>" + (PP_CLUE_KO[u.clue] ? '(' + PP_CLUE_KO[u.clue] + ')' : '') + '<br>' : '')
+          + (u.type ? PP_USES[u.type].why : 'since·for·ever·already 같은 단서가 없어요. 이럴 때는 보통 <b>그 일이 이미 되었고, 그래서 지금 그 상태</b>라는 뜻(완료·결과)이에요. 예: 문이 잠겼다 → 지금 잠겨 있다.')
+          + "<br>현재완료(<b>have·has + 과거분사</b>)와 수동태(<b>be + 과거분사</b>)가 합쳐진 모양이에요. 그래서 <b>have·has + been + 과거분사</b>가 돼요. 주어 <em>" + subj + "</em>에 맞게 <em>" + esc(w1) + "</em>를 써요." + (findClue(sent, ['by']) ? ' by 뒤에 실제로 그 일을 한 사람(것)이 나와요.' : '')
+          + ppMap(u.type ? [u.type] : ['완료', '결과']);
         how = b + '의 과거분사: ' + pastRule(b, f); break;
       }
       if (/^will be /.test(al)) {
