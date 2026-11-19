@@ -86,6 +86,7 @@ background:repeating-linear-gradient(45deg,var(--acc) 0 10px,#ffa3b8 10px 20px)}
 .fb.ok h3{background:var(--okbg);color:var(--ok)}.fb.ok .ans{color:var(--ok)}
 .ans{font-size:22px;font-weight:bold;margin-top:4px}
 .exT{font-weight:bold;font-size:17px;margin:12px 0 8px;color:var(--ink);background:linear-gradient(transparent 60%,var(--butter) 60%);display:inline}
+.ppMap{display:inline-block;margin-top:6px;font-size:13px;color:#9a9a9a;line-height:1.6}.ppMap b{color:var(--ink);background:var(--butter);padding:0 3px;border-radius:4px}
 .exR{display:grid;grid-template-columns:48px minmax(0,1fr);gap:8px;padding:8px 0;border-top:2px dotted var(--line);font-size:15px;line-height:1.65;color:var(--ink)}
 .exR:first-of-type{margin-top:10px}
 .exR>span{font-weight:bold;color:var(--accd);font-size:13px;background:var(--accbg);border-radius:10px;text-align:center;height:24px;line-height:24px}
@@ -492,6 +493,44 @@ function wrongWhy(s, input) {
   }
   return '<div class="exR"><span>내 답</span><div><s>' + esc(input) + '</s>' + (msg ? '<br>' + msg : '') + '</div></div>';
 }
+/* 현재완료 4가지 쓰임: 문장 속 단서(since, ever, already …)를 보고 어떤 뜻인지 골라요 */
+const PP_USES = {
+  '계속': { title: '과거부터 지금까지 쭉 ~해 왔다', short: '쭉 ~해 왔다', why: '과거에 시작된 일이 <b>지금까지 쭉 이어지거나, 지금까지 쌓여 온</b> 것을 말해요. since(~부터), for(~동안), so far(지금까지)와 자주 함께 써요.' },
+  '경험': { title: '~해 본 적 있다', short: '~해 본 적 있다', why: '지금까지 살면서 <b>해 본 적이 있는지(몇 번 했는지)</b> 말해요. ever, never, before, once, twice, ~ times와 자주 함께 써요.' },
+  '완료': { title: '막 / 벌써 / 이제 ~했다', short: '막·벌써 ~했다', why: '하던 일이 <b>지금 막(벌써) 끝났는지</b> 말해요. just(방금), already(이미), yet(아직·벌써)과 자주 함께 써요.' },
+  '결과': { title: '~해서 (그 결과) 지금 …하다', short: '~해서 지금 …하다', why: '과거에 한 일 때문에 <b>지금 어떤 상태가 되어 있는지</b>를 말해요. 예: has gone(가 버려서 지금 여기 없다), has lost(잃어버려서 지금 없다).' }
+};
+const PP_CLUE_KO = {
+  ever: '~해 본 적', never: '한 번도 ~않다', before: '전에', once: '한 번', twice: '두 번', 'many times': '여러 번', times: '~번', 'third time': '세 번째',
+  already: '이미, 벌써', yet: '아직, 벌써', just: '방금', since: '~부터, ~이후로', for: '~동안', 'so far': '지금까지',
+  lately: '최근에', recently: '최근에', 'over the years': '수년 동안', 'in recent years': '최근 몇 년간', 'all week': '일주일 내내',
+  'this year': '올해 (들어 지금까지)', 'this month': '이번 달 (들어 지금까지)', 'this week': '이번 주 (들어 지금까지)', 'how long': '얼마나 오래'
+};
+/* 단서 낱말만으로 정하기 어려운 문장은 여기서 직접 정해 둬요 */
+const PP_FIX = {
+  'has someone left a note on my desk': '결과', 'his name has slipped my mind': '결과', 'oh no the ball has bounced over the fence': '결과',
+  'i have missed you so much': '계속', 'he has won three gold medals': '경험'
+};
+function ppUse(sent, ko) {
+  const t = ' ' + sent.toLowerCase().replace(/[.,!?']/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+  const fix = PP_FIX[t.trim()];
+  const has = k => t.includes(' ' + k + ' ');
+  const first = list => list.find(has) || '';
+  if (fix) return { type: fix, clue: '' };
+  let c;
+  if ((c = first(['ever', 'never', 'before', 'once', 'twice', 'many times', 'third time']))) return { type: '경험', clue: c };
+  if (/ (\d+|two|three|four|five|six|seven|eight|nine|ten|several) times /.test(t)) return { type: '경험', clue: 'times' };
+  if ((c = first(['just', 'already', 'yet']))) return { type: '완료', clue: c };
+  if (/ (has|have) gone /.test(t)) return { type: '결과', clue: '' };
+  if ((c = first(['since', 'so far', 'lately', 'recently', 'over the years', 'in recent years', 'all week', 'this year', 'this month', 'this week', 'how long']))) return { type: '계속', clue: c };
+  if (/ for (a |an |\d|two |three |four |five |six |seven |eight |nine |ten |years|months|weeks|days|hours|ages|long|many|several|some|the past|millions)/.test(t)) return { type: '계속', clue: 'for' };
+  ko = ko || '';
+  if (/적이? ?(있|없)|번째/.test(ko)) return { type: '경험', clue: '' };
+  if (/벌써|이미|방금|아직/.test(ko)) return { type: '완료', clue: '' };
+  if (/왔|째|동안/.test(ko)) return { type: '계속', clue: '' };
+  if (/^(have|has) /.test(t.trim())) return { type: /[어아] 봤/.test(ko) ? '경험' : '완료', clue: '' };
+  return { type: '', clue: '' };
+}
 function explain(word, s, wrong) {
   const b = word.w.toLowerCase(), a = s.ans, al = a.toLowerCase(), f = lastWord(a), w1 = firstWord(a);
   const sent = s.before + a + s.after, before = s.before.trim(), prev = lastWord(before || ' ');
@@ -519,10 +558,15 @@ function explain(word, s, wrong) {
       title = '과거진행형 — 그때 하고 있던 중';
       why = '과거의 어느 순간에 <b>하고 있던 중</b>인 일이에요. <b>was·were + 동사-ing</b>로 써요. 주어에 맞는 be동사는 <em>' + esc(w1) + '</em>예요.';
       how = ingRule(b, f); break;
-    case 'pp':
-      title = '현재완료 — 과거부터 지금까지 / 해 본 적';
-      why = (cl(['already', 'yet', 'ever', 'never', 'since', 'for', 'just', 'times', 'before']) ? cl(['already', 'yet', 'ever', 'never', 'since', 'for', 'just', 'times', 'before']) + '<br>' : '') + "과거에 한 일이 지금까지 이어지거나 지금과 관련이 있어요. <b>have·has + 과거분사</b>로 써요." + (/^(have|has)\b/.test(al) ? " 주어에 맞게 <em>" + esc(w1) + "</em>를 써요." : " 앞에 have·has가 이미 있으니 과거분사만 쓰면 돼요.");
-      how = b + '의 과거분사: ' + pastRule(b, f); break;
+    case 'pp': {
+      const u = ppUse(sent, s.ko);
+      const U = PP_USES[u.type] || null;
+      title = U ? '현재완료 (' + u.type + ') — ' + U.title : '현재완료 — 과거의 일이 지금과 이어져요';
+      why = (u.clue ? "단서: <em>" + esc(u.clue) + "</em>" + (PP_CLUE_KO[u.clue] ? '(' + PP_CLUE_KO[u.clue] + ')' : '') + '<br>' : '')
+        + (U ? U.why : "과거에 한 일이 지금까지 이어지거나 지금과 관련이 있어요.")
+        + " <b>have·has + 과거분사</b>로 써요." + (/^(have|has)\b/.test(al) ? " 주어에 맞게 <em>" + esc(w1) + "</em>를 써요." : " 앞에 have·has가 이미 있으니 과거분사만 쓰면 돼요.")
+        + '<br><span class="ppMap">' + ['계속', '경험', '완료', '결과'].map(k => (k === u.type ? '<b>' : '') + k + '(' + PP_USES[k].short + ')' + (k === u.type ? '</b>' : '')).join(' · ') + '</span>';
+      how = b + '의 과거분사: ' + pastRule(b, f); break; }
     case 'will':
       title = '미래 — 앞으로 할 일';
       why = (cl(['tomorrow', 'next', 'soon', 'later', 'someday', 'tonight']) ? cl(['tomorrow', 'next', 'soon', 'later', 'someday', 'tonight']) + '<br>' : '') + "앞으로 일어날 일이라 <b>will + 동사원형</b>으로 써요." + (/^won't/.test(al) ? ' 부정은 won\'t(= will not)예요.' : '');
