@@ -715,9 +715,18 @@ function readFix(text) {
   if (!ctx) { readIsPast(text); ctx = FULLKO.has(t) ? text : (curSent && nrm(curSent).includes(t) ? curSent : null); }
   return ctx && readIsPast(ctx) ? text.replace(/\bread\b/g, 'red').replace(/\bRead\b/g, 'Red') : text;
 }
+/* lives는 '살다'(리브즈)와 '생명·삶'(라이브즈) 두 가지로 읽혀요. 앞에 our·my·save 같은 말이 없으면 동사(살다)로 보고
+   음성이 '리브즈'로 읽도록 철자를 살짝 바꿔서 들려줘요 (화면 글자는 그대로예요) */
+function livesFix(text) {
+  return text.replace(/(\S+\s+)?\b(L|l)ives\b/g, (m, pre, L) => {
+    const p = (pre || '').trim().toLowerCase().replace(/[^a-z']/g, '');
+    if (/^(our|their|my|your|his|her|its|whose|many|the|save|saved|saves|saving|two|both|all|nine|people's|nine)$/.test(p)) return m;
+    return (pre || '') + L + 'ivs';
+  });
+}
 function speak(text, onend) {
   try {
-    text = readFix(text);
+    text = livesFix(readFix(text));
     const u = new SpeechSynthesisUtterance(text); window.__utt = u; u.lang = 'en-US'; u.rate = mem.rate || 0.7; if (voice) u.voice = voice;
     if (onend) { let done = false; const fin = () => { if (!done) { done = true; onend(); } }; u.onend = fin; u.onerror = fin; }
     /* 아이폰에서 '멈춤(cancel)' 직후 바로 읽기를 시키면 소리가 안 나는 경우가 있어서,
