@@ -854,7 +854,7 @@ function chunks1(text) {
     /* Kids of all ages / can join. 처럼 긴 주어 뒤 조동사 앞에서 끊어요 */
     const modalBreak = cur.length >= 3 && /^(can|can't|cannot|could|couldn't|will|won't|would|should|shouldn't|must|may|might)$/.test(bare) &&
       !/^(what|where|when|who|why|how|which|whose|do|does|did|is|are|was|were|can|could|will|would|should|if|because|when|while)$/i.test(words[0].replace(/[^a-z']/gi, '')) &&
-      !/^(i|you|we|they|he|she|it|this|that|there|not|to|and|or)$/.test(prevBare) && !cur.some(x => /[,;:]$/.test(x));
+      !/^(i|you|we|they|he|she|it|this|that|there|not|to|and|or)$/.test(prevBare) && !cur.some(x => /[,;:]$/.test(x)) && !(cur.length <= 3 && cur.some(x => /^(and|or)$/i.test(x)));
     if (cur.length && (likeBreak || subjStart || modalBreak)) { out.push(cur); cur = []; }
     else if (cur.length && BREAK.has(bare) && !(ADJPREPW.test(bare) && ADJP.test(prevBare)) && (!BREAK.has(prevBare) || (prevBare === 'along' && /^(get|gets|got|getting|come|comes|came|coming|go|goes|went|move|moves|moved|sing|play|tag)$/i.test((words[i - 2] || '').replace(/[^a-z]/gi, '')))) && prevBare !== 'like' && prevBare !== 'as' && !(bare === 'along' && /^(get|gets|got|getting|come|comes|came|coming|go|goes|went|move|moves|moved|sing|play|tag)$/.test(prevBare)) && !(/^(in|on|over|around|about|through)$/.test(bare) && !/^(a|an|the|my|your|his|her|our|their|its|this|that|these|those|some|two|both|clean|dirty|cold)$/i.test((words[i - 2] || '').replace(/[^a-z]/gi, '')) && /^(let|lets|fill|fills|filled|turn|turns|turned|give|gives|gave|put|puts|check|checks|checked|log|sign|signed|try|tries|tried|hand|hands|handed|carry|carries|carried|plug|plugged|take|takes|took|show|showed)$/.test(prevBare) && (() => { const nx = (words[i + 1] || '').toLowerCase().replace(/[^a-z']/g, ''); return /^(a|an|some|any|your|my|his|her|our|their|it|them|me|him|us|this|that|these|those|all|the|more|everything)$/.test(nx) || /[.!?]$/.test(w); })()) && !(/^(and|or)$/.test(bare) && !andStartsClause(words, i, cur)) && !(/^(and|or)$/.test(bare) && (() => { let n = 0; for (let k = i + 1; k < words.length; k++) { n++; if (/[,.;:!?]$/.test(words[k])) break; } return n <= 2; })()) && !(bare === 'to' && i > 0 && /^(want|wants|wanted|need|needs|needed|have|has|had|going|got|used|able|try|tried|tries)$/i.test(words[i - 1]))) { out.push(cur); cur = []; }
     cur.push(w);
@@ -1063,6 +1063,27 @@ function chunks1(text) {
         idx.forEach((st, q) => out.push(ws.slice(st, idx[q + 1] || ws.length)));
       }
     }
+  }
+  /* and·or 가 들어 있는 덩어리는 '주어 + 동사' 뒤, 목적어 앞에서 끊어요
+     (My friends and I made / secret codes, I had / bacon and eggs, Men and women should get / equal pay) */
+  for (let k = 0; k < out.length; k++) {
+    const c = out[k]; if (c.length < 5) continue;
+    const lw = c.map(x => x.toLowerCase().replace(/[^a-z']/g, ''));
+    const j = lw.findIndex((x, q) => q > 0 && /^(and|or)$/.test(x)); if (j < 0) continue;
+    const MOD = /^(can|can't|could|couldn't|will|won't|would|should|shouldn't|must|may|might|do|does|did|don't|doesn't|didn't)$/;
+    let v = -1;
+    for (let q = 1; q < c.length - 2; q++) {
+      if (q === j || q === j - 1 || q === j + 1 || /[,;:]$/.test(c[q - 1])) continue;
+      if (DET.test(lw[q - 1]) || /^(and|or|of|to)$/.test(lw[q - 1])) continue;
+      if (MOD.test(lw[q]) || AND_PAST.has(lw[q]) || /^(is|are|was|were|am|has|have|had)$/.test(lw[q]) || isVerbForm(lw[q])) { v = q; break; }
+    }
+    if (v < 0) continue;
+    while (v + 1 < c.length - 2 && (MOD.test(lw[v]) || /^(not|never|also|always|often|really)$/.test(lw[v + 1])) && (isVerbForm(lw[v + 1]) || /^(not|never|also|always|often|really|be)$/.test(lw[v + 1]))) v++;
+    if (/^(is|are|was|were|am|be|been)$/.test(lw[v]) && v + 1 < c.length - 1 && /(ed|en|ing)$/.test(lw[v + 1]) && isVerbForm(lw[v + 1])) v++;
+    const rest = c.slice(v + 1);
+    if (rest.length < 2 || BREAK.has(lw[v + 1]) || /^(out|away|up|down|off)$/.test(lw[v + 1]) || (v + 1 > j && v + 1 - 0 < 2)) continue;
+    /* 목적어 부분에 and 가 있거나, 주어 부분(동사 앞)에 and 가 있을 때만 끊어요 */
+    out.splice(k, 1, c.slice(0, v + 1), rest); k++;
   }
   /* 1단어짜리 덩어리는 이웃과 합쳐요 */
   const merged = [];
