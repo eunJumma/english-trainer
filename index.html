@@ -800,6 +800,45 @@ function chunks(text) {
   if (!ok) return chunks1(text);
   return parts.flatMap(p => p.split(' ').length <= 4 ? [p] : chunks1(p));
 }
+/* and·or 뒤에서 끊을지 정해요.
+   '주어+동사'나 '동사'가 새로 시작되면 끊고(He bent down / and picked up …),
+   명사·형용사끼리 이어 주면 한 덩어리로 둬요(My aunts and their husbands came / …, bacon and eggs) */
+let AND_VERBS = null;
+const AND_PAST = new Set('was were had did made took gave got went came ran cut fell rose told sent began broke ate saw found left kept held put set hit lost met paid said sat stood thought brought bought caught taught felt heard knew grew threw drew drove flew wrote spoke woke wore won sang swam rang drank shook stole hid bit fought led read sold spent slept swept swung struck shut split spread built burnt lent meant sent dealt dug fed fled forgot forgave froze hung laid lit quit rode sank shot shone slid stuck stung tore understood withdrew'.split(' '));
+const AND_AUX = /^(is|are|am|was|were|has|have|had|do|does|did|don't|doesn't|didn't|can|can't|could|couldn't|will|won't|would|should|must|may|might|then|therefore|thus|so|neither|nor|also|yet|still|now|later|soon|finally|suddenly|never|always|often|usually|sometimes|just|immediately|quickly|slowly|instead)$/;
+const AND_OBJ = /^(a|an|the|my|your|his|her|our|their|its|this|that|these|those|some|any|me|him|us|them|it|you|myself|yourself|himself|herself|ourselves|themselves|itself|to|up|down|out|off|away|back|over|on|in|at|for|with|home|here|there|not|all|both|every|each|no|more|one|two|three|four|five|six|seven|eight|nine|ten|\d+)$/;
+function andVerbs() {
+  if (AND_VERBS) return AND_VERBS;
+  AND_VERBS = new Set();
+  try { (window.WORD_BANK || []).forEach(txt => txt.split('\n').forEach(l => { const m = l.match(/^#\s*([a-z ]+?)\s*\|\s*v\s*\|/i); if (m && !m[1].includes(' ')) AND_VERBS.add(m[1].toLowerCase()); })); } catch (e) {}
+  return AND_VERBS;
+}
+function isVerbForm(w) {
+  const V = andVerbs();
+  if (AND_PAST.has(w) || V.has(w)) return true;
+  const cand = [w.replace(/ies$/, 'y'), w.replace(/es$/, ''), w.replace(/s$/, ''), w.replace(/ied$/, 'y'), w.replace(/ed$/, ''), w.replace(/d$/, ''), w.replace(/(.)\1ed$/, '$1'), w.replace(/ing$/, ''), w.replace(/ing$/, 'e'), w.replace(/(.)\1ing$/, '$1')];
+  return cand.some(c => c !== w && V.has(c));
+}
+function andStartsClause(words, i, cur) {
+  const b = k => (words[k] || '').toLowerCase().replace(/[^a-z0-9']/g, '');
+  const n1 = b(i + 1), n2 = b(i + 2);
+  if (!n1) return true;
+  if (AND_AUX.test(n1)) return true;
+  if (/^(he|she|they|we|it)$/.test(n1)) return true;
+  if (/^(i|you)$/.test(n1)) {
+    /* My friends and I made … 처럼 짧은 명사 주어와 I 가 함께 주어이면 이어요 */
+    const c0 = (cur[0] || '').replace(/[^A-Za-z']/g, '');
+    return !(cur.length <= 3 && (/^(my|your|his|her|our|their|the|a|an|mom|dad)$/i.test(c0) || (/^[A-Z]/.test(c0) && !/^(I|You|He|She|We|They|It)$/.test(c0))) && !cur.slice(1).some(x => isVerbForm(x.toLowerCase().replace(/[^a-z']/g, '')) && !/s$/.test(x)));
+  }
+  if (AND_PAST.has(n1)) return true;
+  if (/^(one|another|others)$/.test(n1)) return true;
+  if (/ly$/.test(n1) && isVerbForm(n2)) return true;
+  /* and match the edges 처럼 바로 뒤에 the·a·my 가 오면 앞말은 동사예요 */
+  if (/^(a|an|the|my|your|his|her|our|their|its)$/.test(n2) && !/^(a|an|the|my|your|his|her|our|their|its|this|that|these|those|some|any|no|all|both|one|two|three|four|five|\d+)$/.test(n1) && !/(ful|ous|ive|al|ic|less|able|ible)$/.test(n1)) return true;
+  /* 동사로 쓰일 수 있는 말이면서, 뒤에 목적어(the·me·to …)가 오거나 동사 모양(-ed)이면 새 동작으로 봐요 */
+  if (isVerbForm(n1) && (AND_OBJ.test(n2) || /ed$/.test(n1) || !n2 || /[.!?,]$/.test(words[i + 1]))) return true;
+  return false;
+}
 function chunks1(text) {
   const words = text.replace(/\s+/g, ' ').trim().split(' ');
   const out = []; let cur = [];
@@ -817,7 +856,7 @@ function chunks1(text) {
       !/^(what|where|when|who|why|how|which|whose|do|does|did|is|are|was|were|can|could|will|would|should|if|because|when|while)$/i.test(words[0].replace(/[^a-z']/gi, '')) &&
       !/^(i|you|we|they|he|she|it|this|that|there|not|to|and|or)$/.test(prevBare) && !cur.some(x => /[,;:]$/.test(x));
     if (cur.length && (likeBreak || subjStart || modalBreak)) { out.push(cur); cur = []; }
-    else if (cur.length && BREAK.has(bare) && !(ADJPREPW.test(bare) && ADJP.test(prevBare)) && (!BREAK.has(prevBare) || (prevBare === 'along' && /^(get|gets|got|getting|come|comes|came|coming|go|goes|went|move|moves|moved|sing|play|tag)$/i.test((words[i - 2] || '').replace(/[^a-z]/gi, '')))) && prevBare !== 'like' && prevBare !== 'as' && !(bare === 'along' && /^(get|gets|got|getting|come|comes|came|coming|go|goes|went|move|moves|moved|sing|play|tag)$/.test(prevBare)) && !(/^(in|on|over|around|about|through)$/.test(bare) && !/^(a|an|the|my|your|his|her|our|their|its|this|that|these|those|some|two|both|clean|dirty|cold)$/i.test((words[i - 2] || '').replace(/[^a-z]/gi, '')) && /^(let|lets|fill|fills|filled|turn|turns|turned|give|gives|gave|put|puts|check|checks|checked|log|sign|signed|try|tries|tried|hand|hands|handed|carry|carries|carried|plug|plugged|take|takes|took|show|showed)$/.test(prevBare) && (() => { const nx = (words[i + 1] || '').toLowerCase().replace(/[^a-z']/g, ''); return /^(a|an|some|any|your|my|his|her|our|their|it|them|me|him|us|this|that|these|those|all|the|more|everything)$/.test(nx) || /[.!?]$/.test(w); })()) && !(/^(and|or)$/.test(bare) && (() => { let n = 0; for (let k = i + 1; k < words.length; k++) { n++; if (/[,.;:!?]$/.test(words[k])) break; } return n <= 2; })()) && !(bare === 'to' && i > 0 && /^(want|wants|wanted|need|needs|needed|have|has|had|going|got|used|able|try|tried|tries)$/i.test(words[i - 1]))) { out.push(cur); cur = []; }
+    else if (cur.length && BREAK.has(bare) && !(ADJPREPW.test(bare) && ADJP.test(prevBare)) && (!BREAK.has(prevBare) || (prevBare === 'along' && /^(get|gets|got|getting|come|comes|came|coming|go|goes|went|move|moves|moved|sing|play|tag)$/i.test((words[i - 2] || '').replace(/[^a-z]/gi, '')))) && prevBare !== 'like' && prevBare !== 'as' && !(bare === 'along' && /^(get|gets|got|getting|come|comes|came|coming|go|goes|went|move|moves|moved|sing|play|tag)$/.test(prevBare)) && !(/^(in|on|over|around|about|through)$/.test(bare) && !/^(a|an|the|my|your|his|her|our|their|its|this|that|these|those|some|two|both|clean|dirty|cold)$/i.test((words[i - 2] || '').replace(/[^a-z]/gi, '')) && /^(let|lets|fill|fills|filled|turn|turns|turned|give|gives|gave|put|puts|check|checks|checked|log|sign|signed|try|tries|tried|hand|hands|handed|carry|carries|carried|plug|plugged|take|takes|took|show|showed)$/.test(prevBare) && (() => { const nx = (words[i + 1] || '').toLowerCase().replace(/[^a-z']/g, ''); return /^(a|an|some|any|your|my|his|her|our|their|it|them|me|him|us|this|that|these|those|all|the|more|everything)$/.test(nx) || /[.!?]$/.test(w); })()) && !(/^(and|or)$/.test(bare) && !andStartsClause(words, i, cur)) && !(/^(and|or)$/.test(bare) && (() => { let n = 0; for (let k = i + 1; k < words.length; k++) { n++; if (/[,.;:!?]$/.test(words[k])) break; } return n <= 2; })()) && !(bare === 'to' && i > 0 && /^(want|wants|wanted|need|needs|needed|have|has|had|going|got|used|able|try|tried|tries)$/i.test(words[i - 1]))) { out.push(cur); cur = []; }
     cur.push(w);
     if (/[,;:]$/.test(w)) { out.push(cur); cur = []; }
   });
