@@ -753,7 +753,7 @@ function livesFix(text) {
 }
 function speak(text, onend) {
   try {
-    text = livesFix(readFix(text));
+    text = livesFix(readFix(text)).replace(/\bMina('s)?\b/g, (m, ps) => 'Meena' + (ps || ''));  /* Mina's 를 '마이너스'로 읽지 않게, 소리만 Meena(미나)로 */
     const u = new SpeechSynthesisUtterance(text); window.__utt = u; u.lang = (voice && voice.lang) ? voice.lang.replace('_', '-') : 'en-US'; u.rate = mem.rate || 0.7; if (voice) u.voice = voice;
     if (onend) { let done = false; const fin = () => { if (!done) { done = true; onend(); } }; u.onend = fin; u.onerror = fin; }
     /* 아이폰에서 '멈춤(cancel)' 직후 바로 읽기를 시키면 소리가 안 나는 경우가 있어서,
